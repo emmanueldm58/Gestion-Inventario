@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "tiendaonline-79bfc",
+    "inventario": "inventario-87d56"
+  },
+  "targets": {},
+  "etags": {}
+}

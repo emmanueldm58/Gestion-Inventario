@@ -1,0 +1,39 @@
+/* Footer.css */
+.footer {
+    background-color: #152056; /* Fondo oscuro */
+    color: #fff; /* Texto blanco */
+    padding: 20px 10%; /* Espacio interno */
+    text-align: center; /* Centrar texto */
+    width: 100%; /* Asegura que el footer ocupe todo el ancho */
+    position: relative; /* Necesario para el ajuste de posicionamiento */
+    bottom: 0; /* Posicionarlo al final del contenedor */
+    
+}
+
+.footer-content {
+    margin-bottom: 10px; /* Espacio entre el contenido y la parte inferior */
+}
+
+.footer-content ul {
+    list-style: none; /* Eliminar viñetas */
+    padding: 0; /* Eliminar padding */
+}
+
+.footer-content ul li {
+    display: inline; /* Mostrar enlaces en línea */
+    margin: 0 15px; /* Espaciado entre enlaces */
+}
+
+.footer-content a {
+    color: #fff; /* Color de los enlaces */
+    text-decoration: none; /* Sin subrayado */
+}
+
+.footer-content a:hover {
+    text-decoration: underline; /* Subrayado al pasar el mouse */
+}
+
+.footer-bottom {
+    margin-top: 10px; /* Espacio entre contenido y derechos reservados */
+    font-size: 14px; /* Tamaño de fuente más pequeño */
+}

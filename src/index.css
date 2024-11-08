@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background: white; /* Color de fondo */
+
+  color: #152056; /* Color del texto, puedes cambiarlo si lo deseas */
+}
+
+a {
+  text-decoration: none;
+  color: inherit; /* Hereda el color del texto del contenedor padre */
+}
+
+/* Media Queries para Responsividad */
+@media (max-width: 29px) {
+  body {
+    background: url('./assets/background-mobile.jpg') no-repeat center center; /* Cambia la imagen de fondo para móviles si es necesario */
+    background-size: cover; /* Asegura que la imagen cubra toda el área */
+    padding: 20px; /* Agrega padding para evitar que el contenido se pegue a los bordes */
+  }
+
+  /* Puedes añadir más estilos responsivos aquí según sea necesario */
+}
+
+/* Productos.css */
+.productos {
+  padding: 20px;
+}
+
+.productos-list {
+  display: flex;
+  flex-wrap: wrap; /* Permite que los productos se ajusten a varias líneas */
+  justify-content: space-between; /* Espacio entre los productos */
+}
+
+.producto-item {
+  background-color: #fff; /* Fondo blanco para los productos */
+  border: 1px solid #ddd; /* Borde gris claro */
+  border-radius: 5px; /* Bordes redondeados */
+  padding: 10px;
+  margin: 10px;
+  text-align: center; /* Centrar texto e imágenes */
+  width: calc(33% - 20px); /* Ajustar el ancho a un tercio con margen */
+}
+
+.producto-item img {
+  max-width: 100%; /* Asegura que la imagen no exceda el ancho del contenedor */
+  height: auto; /* Mantiene la proporción de la imagen */
+}
+
+.card-body {
+  background-color:#868899 ;
+
+  
+}
+.card-title{
+  color: white;
+}
+.card-text{
+  color: white;
+}
+
+.notification {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  padding: 15px;
+  border-radius: 5px;
+  z-index: 1000; /* Asegurarte de que esté por encima de otros elementos */
+}

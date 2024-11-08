@@ -1,0 +1,15 @@
+/* Estilo general para el body */
+html, body {
+    height: 100%; /* Asegúrate de que el body ocupe toda la altura de la ventana */
+    margin: 0; /* Eliminar márgenes por defecto */
+}
+
+.app-container {
+    display: flex; /* Usamos flexbox */
+    flex-direction: column; /* Apilar elementos verticalmente */
+    min-height: 100vh; /* Asegura que el contenedor mínimo ocupe toda la altura de la ventana */
+}
+
+.main-content {
+    flex: 1; /* Permite que el contenido principal tome el espacio restante */
+}
