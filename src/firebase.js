@@ -1,23 +1,21 @@
-// src/firebase.js
+// src/config/firebase.js
 
-import { initializeApp } from 'firebase/app';
-import { getDatabase } from 'firebase/database';
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 
-// Tu configuración de Firebase (que obtuviste al crear el proyecto)
 const firebaseConfig = {
-    apiKey: "AIzaSyDpB4kA553ZkWiPFDMVLx6QWDNSoYMeCp0",
-    authDomain: "tiendaonline-918ec.firebaseapp.com",
-    projectId: "tiendaonline-918ec",
-    storageBucket: "tiendaonline-918ec.appspot.com",
-    messagingSenderId: "303083553198",
-    appId: "1:303083553198:web:4de765b0d32d99df54083f"
-  };
-  
+  apiKey: "AIzaSyDZ3seUE...",
+  authDomain: "inventario-87d56.firebaseapp.com",
+  databaseURL: "https://inventario-87d56-default-rtdb.firebaseio.com",
+  projectId: "inventario-87d56",
+  storageBucket: "inventario-87d56.appspot.com",
+  messagingSenderId: "28551246266",
+  appId: "1:28551246266:web:adfa8fae255b14e76aad83",
+  measurementId: "G-99CHWB5ZWV",
+};
 
-// Inicializamos Firebase
+// Inicializa Firebase
 const app = initializeApp(firebaseConfig);
-
-// Inicializamos la base de datos
-const db = getDatabase(app);
+const db = getFirestore(app);
 
 export { db };

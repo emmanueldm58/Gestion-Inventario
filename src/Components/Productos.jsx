@@ -1,51 +1,176 @@
-import React, { useState, useEffect } from 'react';
-import { ref, set, get } from 'firebase/database';
-import { db } from '../firebase';
+import React, { useEffect, useState } from 'react';
+import { db } from '../firebase'; // Asegúrate de que este import esté correcto
+import { collection, getDocs, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
 
 const Productos = () => {
     const [productos, setProductos] = useState([]);
-    const [productosFavoritos, setProductosFavoritos] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [cantidad, setCantidad] = useState({});
+    const [nuevoProducto, setNuevoProducto] = useState({
+        nombre: '',
+        cantidad: 0,  // Aseguramos que la cantidad sea un número
+        precio: 0     // Aseguramos que el precio sea un número
+    });
+    const [showModal, setShowModal] = useState(false); // Modal para agregar nuevo producto
+    const [showMovimientoModal, setShowMovimientoModal] = useState(false); // Modal para registrar movimiento
+    const [showEditarModal, setShowEditarModal] = useState(false); // Modal para editar producto
+    const [productoSeleccionado, setProductoSeleccionado] = useState(null); // Producto seleccionado para editar
+    const [movimiento, setMovimiento] = useState({ cantidad: 0, tipo: '', fecha: Timestamp.now() }); // Datos del movimiento
 
-    useEffect(() => {
-        const obtenerProductos = async () => {
-            try {
-                const response = await fetch('https://tiendaonline-79bfc-default-rtdb.firebaseio.com/productos.json');
-                if (!response.ok) throw new Error('Error en la respuesta de la API');
-                const data = await response.json();
-                setProductos(data);
-            } catch (error) {
-                console.error('Error al obtener los productos:', error);
-                setError('No se pudieron cargar los productos.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        obtenerProductos();
-    }, []);
-
-    const handleFavoriteClick = async (producto) => {
-        const nuevosFavoritos = new Set(productosFavoritos);
-        nuevosFavoritos.add(producto);
-        setProductosFavoritos(nuevosFavoritos);
-
+    // Función para obtener productos de Firestore
+    const obtenerProductos = async () => {
         try {
-            const favoritosRef = ref(db, 'favoritos');
-            await set(favoritosRef, Array.from(nuevosFavoritos));
-        } catch (error) {
-            console.error('Error al guardar favoritos en Firebase:', error);
+            const querySnapshot = await getDocs(collection(db, "Productos"));
+            const dataFirebase = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            console.log("Datos consultados de Firebase:", dataFirebase);
+            setProductos(dataFirebase);
+            setLoading(false);
+        } catch (e) {
+            console.error("Error al consultar los datos en Firebase: ", e);
+            setError('Error al obtener productos.');
+            setLoading(false);
         }
     };
 
+    // Llamar a la función al cargar el componente
+    useEffect(() => {
+        obtenerProductos();
+    }, []);
+
     const handleSearchChange = (e) => setSearchTerm(e.target.value);
 
-    const normalizeString = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const productosFiltrados = productos.filter((producto) =>
-        normalizeString(producto.nombre.toLowerCase()).includes(normalizeString(searchTerm.toLowerCase()))
+        producto.nombre.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const handleCantidadChange = (e, id) => {
+        setCantidad({
+            ...cantidad,
+            [id]: e.target.value
+        });
+    };
+
+    const handleNuevoProductoChange = (e) => {
+        const { name, value } = e.target;
+        // Aseguramos que los valores de cantidad y precio sean números
+        setNuevoProducto({
+            ...nuevoProducto,
+            [name]: name === 'cantidad' || name === 'precio' ? parseFloat(value) : value
+        });
+    };
+
+    const handleSubmitNuevoProducto = async (e) => {
+        e.preventDefault();
+        try {
+            // Agregar el nuevo producto a Firestore, asegurándonos que cantidad y precio son números
+            await addDoc(collection(db, "Productos"), {
+                ...nuevoProducto,
+                cantidad: parseFloat(nuevoProducto.cantidad), // Aseguramos que la cantidad sea un número
+                precio: parseFloat(nuevoProducto.precio),     // Aseguramos que el precio sea un número
+                fechaRegistro: Timestamp.now() // Guardamos la fecha actual en Firestore
+            });
+            setShowModal(false); // Cierra el modal
+            setNuevoProducto({
+                nombre: '',
+                cantidad: 0,
+                precio: 0
+            });
+            console.log('Producto agregado');
+            // Recargar los productos después de agregar uno nuevo
+            obtenerProductos(); // Llamamos a obtenerProductos para actualizar la lista
+        } catch (e) {
+            console.error("Error al agregar el producto: ", e);
+        }
+    };
+
+    const handleRegistrarMovimiento = async () => {
+        if (!productoSeleccionado) return;
+
+        try {
+            const productoRef = doc(db, "Productos", productoSeleccionado.id);
+            const productoData = productoSeleccionado;
+
+            // Convertir cantidad a número (asegurándonos que sea un entero)
+            const cantidadMovida = parseFloat(movimiento.cantidad); // Convertimos a número
+            if (isNaN(cantidadMovida) || cantidadMovida <= 0) {
+                alert('Por favor ingrese una cantidad válida.');
+                return;
+            }
+
+            // Registrar movimiento en la colección de movimientos (o en el propio producto)
+            const nuevoMovimiento = {
+                ...movimiento,
+                producto: productoSeleccionado.nombre,
+                productoId: productoSeleccionado.id,
+                cantidadAnterior: productoData.cantidad, // Guardamos la cantidad antes del movimiento
+                cantidadMovida,
+                cantidadNueva: movimiento.tipo === 'entrada' 
+                    ? productoData.cantidad + cantidadMovida
+                    : productoData.cantidad - cantidadMovida,
+            };
+            // Suponiendo que tienes una colección 'Historial' en Firestore
+            await addDoc(collection(db, "Historial"), nuevoMovimiento);
+
+            // Actualizar la cantidad en el producto después del movimiento
+            let nuevaCantidad = productoData.cantidad;
+            if (movimiento.tipo === 'entrada') {
+                nuevaCantidad += cantidadMovida;
+            } else if (movimiento.tipo === 'salida') {
+                nuevaCantidad -= cantidadMovida;
+            }
+
+            // Asegurarse de que la cantidad nunca sea negativa
+            if (nuevaCantidad < 0) {
+                alert('La cantidad no puede ser negativa.');
+                return;
+            }
+
+            await updateDoc(productoRef, { cantidad: nuevaCantidad });
+
+            setShowMovimientoModal(false); // Cierra el modal
+            setMovimiento({ cantidad: 0, tipo: '', fecha: Timestamp.now() }); // Resetea el formulario del movimiento
+            obtenerProductos(); // Vuelve a cargar los productos
+        } catch (e) {
+            console.error("Error al registrar el movimiento: ", e);
+        }
+    };
+
+    const handleEditarProducto = async () => {
+        try {
+            const productoRef = doc(db, "Productos", productoSeleccionado.id);
+            await updateDoc(productoRef, {
+                nombre: productoSeleccionado.nombre,
+                cantidad: parseFloat(productoSeleccionado.cantidad),
+                precio: parseFloat(productoSeleccionado.precio)
+            });
+
+            setShowEditarModal(false); // Cierra el modal
+            obtenerProductos(); // Recargar los productos después de editar
+        } catch (e) {
+            console.error("Error al editar el producto: ", e);
+        }
+    };
+
+    const handleEntrada = (producto) => {
+        setProductoSeleccionado(producto);
+        setShowMovimientoModal(true);
+    };
+
+    const handleSalida = (producto) => {
+        setProductoSeleccionado(producto);
+        setShowMovimientoModal(true);
+    };
+
+    const handleEditar = (producto) => {
+        setProductoSeleccionado(producto);
+        setShowEditarModal(true);
+    };
 
     if (loading) return <div className="text-center">Cargando productos...</div>;
     if (error) return <div className="text-center text-danger">{error}</div>;
@@ -67,13 +192,22 @@ const Productos = () => {
                 </div>
             </div>
 
-            {/* Tabla de productos */}
+            {/* Botón Nuevo Producto */}
+            <div className="d-flex justify-content-end mb-3">
+                <button 
+                    className="btn btn-success" 
+                    onClick={() => setShowModal(true)}  // Aseguramos que el modal se abra correctamente
+                >
+                    Nuevo Producto
+                </button>
+            </div>
+
             <table className="table table-bordered">
                 <thead>
                     <tr>
                         <th>Nombre</th>
-                        <th>Stock</th> {/* Nueva columna de Stock */}
-                        <th>Editar</th>
+                        <th>Precio</th>
+                        <th>Cantidad</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -82,34 +216,21 @@ const Productos = () => {
                         productosFiltrados.map((producto) => (
                             <tr key={producto.id}>
                                 <td>{producto.nombre}</td>
-                                <td>{producto.stock}</td> {/* Mostrar stock del producto */}
-                                <td>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        min="1"
-                                        placeholder="Editar"
-                                        style={{ width: '80px' }}
-                                    />
-                                </td>
+                                <td>{producto.precio}</td>
+                                <td>{producto.cantidad}</td>
+                              
                                 <td>
                                     <button
                                         className="btn btn-primary btn-sm mx-1"
-                                        onClick={() => console.log('Agregar', producto.nombre)}
+                                        onClick={() => handleEntrada(producto)}
                                     >
-                                        Entrada
-                                    </button>
-                                    <button
-                                        className="btn btn-warning btn-sm mx-1"
-                                        onClick={() => handleFavoriteClick(producto)}
-                                    >
-                                        Salida
+                                        Movimiento
                                     </button>
                                     <button
                                         className="btn btn-secondary btn-sm mx-1"
-                                        onClick={() => console.log('Editar', producto.nombre)}
+                                        onClick={() => handleEditar(producto)}
                                     >
-                                        Editar producto
+                                        Editar
                                     </button>
                                 </td>
                             </tr>
@@ -117,12 +238,163 @@ const Productos = () => {
                     ) : (
                         <tr>
                             <td colSpan="4" className="text-center">
-                                No se encontraron productos que coincidan con la búsqueda.
+                                No se encontraron productos.
                             </td>
                         </tr>
                     )}
                 </tbody>
             </table>
+
+            {/* Modal para agregar nuevo producto */}
+            {showModal && (
+                <div className="modal" style={{ display: 'block', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+                    <div className="modal-content" style={{ margin: '100px auto', padding: '20px', backgroundColor: '#fff', width: '80%', maxWidth: '500px' }}>
+                        <h3>Nuevo Producto</h3>
+                        <form onSubmit={handleSubmitNuevoProducto}>
+                            <div className="mb-3">
+                                <label htmlFor="nombre" className="form-label">Nombre</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    id="nombre"
+                                    name="nombre"
+                                    value={nuevoProducto.nombre}
+                                    onChange={handleNuevoProductoChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="cantidad" className="form-label">Cantidad</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    id="cantidad"
+                                    name="cantidad"
+                                    value={nuevoProducto.cantidad}
+                                    onChange={handleNuevoProductoChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="precio" className="form-label">Precio</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    id="precio"
+                                    name="precio"
+                                    value={nuevoProducto.precio}
+                                    onChange={handleNuevoProductoChange}
+                                    required
+                                />
+                            </div>
+                            <button type="submit" className="btn btn-primary">Agregar Producto</button>
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary mx-2" 
+                                onClick={() => setShowModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para registrar movimiento */}
+            {showMovimientoModal && (
+                <div className="modal" style={{ display: 'block', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+                    <div className="modal-content" style={{ margin: '100px auto', padding: '20px', backgroundColor: '#fff', width: '80%', maxWidth: '500px' }}>
+                        <h3>Registrar Movimiento</h3>
+                        <form onSubmit={(e) => { e.preventDefault(); handleRegistrarMovimiento(); }}>
+                            <div className="mb-3">
+                                <label htmlFor="cantidad" className="form-label">Cantidad</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    id="cantidad"
+                                    value={movimiento.cantidad}
+                                    onChange={(e) => setMovimiento({ ...movimiento, cantidad: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="tipo" className="form-label">Tipo</label>
+                                <select
+                                    id="tipo"
+                                    className="form-select"
+                                    value={movimiento.tipo}
+                                    onChange={(e) => setMovimiento({ ...movimiento, tipo: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Seleccione un tipo de movimiento</option>
+                                    <option value="entrada">Entrada</option>
+                                    <option value="salida">Salida</option>
+                                </select>
+                            </div>
+                            <button type="submit" className="btn btn-primary">Registrar Movimiento</button>
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary mx-2" 
+                                onClick={() => setShowMovimientoModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para editar producto */}
+            {showEditarModal && (
+                <div className="modal" style={{ display: 'block', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+                    <div className="modal-content" style={{ margin: '100px auto', padding: '20px', backgroundColor: '#fff', width: '80%', maxWidth: '500px' }}>
+                        <h3>Editar Producto</h3>
+                        <form onSubmit={(e) => { e.preventDefault(); handleEditarProducto(); }}>
+                            <div className="mb-3">
+                                <label htmlFor="nombre" className="form-label">Nombre</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    id="nombre"
+                                    value={productoSeleccionado.nombre}
+                                    onChange={(e) => setProductoSeleccionado({ ...productoSeleccionado, nombre: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="cantidad" className="form-label">Cantidad</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    id="cantidad"
+                                    value={productoSeleccionado.cantidad}
+                                    onChange={(e) => setProductoSeleccionado({ ...productoSeleccionado, cantidad: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="precio" className="form-label">Precio</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    id="precio"
+                                    value={productoSeleccionado.precio}
+                                    onChange={(e) => setProductoSeleccionado({ ...productoSeleccionado, precio: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <button type="submit" className="btn btn-primary">Actualizar Producto</button>
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary mx-2" 
+                                onClick={() => setShowEditarModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
