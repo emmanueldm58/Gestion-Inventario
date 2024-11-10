@@ -1,18 +1,13 @@
 // src/Components/Notification.jsx
 import React from 'react';
+import './Notification.css'; // Asegúrate de que el archivo CSS esté en la misma carpeta
 
-const SendNotification = ({ message }) => {
-  if (!message) {
-    throw new Error('El mensaje no puede estar vacío');
-  }
-
+const Notification = ({ message }) => {
   return (
     <div className="notification">
-      {message}
+      <p>{message}</p>
     </div>
   );
 };
 
-export default SendNotification;
-
-
+export default Notification;

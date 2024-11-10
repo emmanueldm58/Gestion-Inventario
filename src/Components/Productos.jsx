@@ -28,7 +28,7 @@ const Productos = () => {
                 ...doc.data()
             }));
             
-            console.log("Datos consultados de Firebase:", dataFirebase);
+            //console.log("Datos consultados de Firebase:", dataFirebase);
             setProductos(dataFirebase);
             setLoading(false);
         } catch (e) {
@@ -67,6 +67,10 @@ const Productos = () => {
 
     const handleSubmitNuevoProducto = async (e) => {
         e.preventDefault();
+        const confirmacion = window.confirm("¿Confirma que el producto que ingresaste este bien?");
+        if (!confirmacion) {
+            return; // Si el usuario cancela, no hace nada
+        }
         try {
             // Agregar el nuevo producto a Firestore, asegurándonos que cantidad y precio son números
             await addDoc(collection(db, "Productos"), {
@@ -91,57 +95,67 @@ const Productos = () => {
 
     const handleRegistrarMovimiento = async () => {
         if (!productoSeleccionado) return;
-
+    
+        // Convertir la cantidad a número
+        const cantidadMovida = parseFloat(movimiento.cantidad);
+        if (isNaN(cantidadMovida) || cantidadMovida <= 0) {
+            alert('Por favor ingrese una cantidad válida.');
+            return;
+        }
+    
+        // Confirmación antes de proceder con el movimiento
+        const confirmAction = window.confirm(`¿Estás seguro de que deseas ${movimiento.tipo === 'entrada' ? 'agregar' : 'restar'} ${cantidadMovida} unidades?`);
+        if (!confirmAction) return;  // Si el usuario cancela, no se realiza el movimiento.
+    
         try {
-            const productoRef = doc(db, "Productos", productoSeleccionado.id);
-            const productoData = productoSeleccionado;
-
-            // Convertir cantidad a número (asegurándonos que sea un entero)
-            const cantidadMovida = parseFloat(movimiento.cantidad); // Convertimos a número
-            if (isNaN(cantidadMovida) || cantidadMovida <= 0) {
-                alert('Por favor ingrese una cantidad válida.');
-                return;
-            }
-
-            // Registrar movimiento en la colección de movimientos (o en el propio producto)
+            // Registrar movimiento en la colección Historial
             const nuevoMovimiento = {
                 ...movimiento,
                 producto: productoSeleccionado.nombre,
                 productoId: productoSeleccionado.id,
-                cantidadAnterior: productoData.cantidad, // Guardamos la cantidad antes del movimiento
+                cantidadAnterior: productoSeleccionado.cantidad, // Cantidad antes del movimiento
                 cantidadMovida,
                 cantidadNueva: movimiento.tipo === 'entrada' 
-                    ? productoData.cantidad + cantidadMovida
-                    : productoData.cantidad - cantidadMovida,
+                    ? productoSeleccionado.cantidad + cantidadMovida
+                    : productoSeleccionado.cantidad - cantidadMovida,
             };
-            // Suponiendo que tienes una colección 'Historial' en Firestore
             await addDoc(collection(db, "Historial"), nuevoMovimiento);
-
-            // Actualizar la cantidad en el producto después del movimiento
-            let nuevaCantidad = productoData.cantidad;
+    
+            // Actualizar la cantidad del producto
+            let nuevaCantidad = productoSeleccionado.cantidad;
             if (movimiento.tipo === 'entrada') {
                 nuevaCantidad += cantidadMovida;
             } else if (movimiento.tipo === 'salida') {
                 nuevaCantidad -= cantidadMovida;
             }
-
-            // Asegurarse de que la cantidad nunca sea negativa
+    
+            // Verificar que la cantidad no sea negativa
             if (nuevaCantidad < 0) {
                 alert('La cantidad no puede ser negativa.');
                 return;
             }
-
+    
+            // Actualizar el producto en la base de datos
+            const productoRef = doc(db, "Productos", productoSeleccionado.id);
             await updateDoc(productoRef, { cantidad: nuevaCantidad });
-
-            setShowMovimientoModal(false); // Cierra el modal
-            setMovimiento({ cantidad: 0, tipo: '', fecha: Timestamp.now() }); // Resetea el formulario del movimiento
-            obtenerProductos(); // Vuelve a cargar los productos
+    
+            // Resetear el formulario y cerrar el modal
+            setShowMovimientoModal(false);
+            setMovimiento({ cantidad: 0, tipo: '', fecha: Timestamp.now() });
+            obtenerProductos();  // Recargar los productos después del movimiento
+    
         } catch (e) {
             console.error("Error al registrar el movimiento: ", e);
         }
     };
+    
 
     const handleEditarProducto = async () => {
+        const confirmacion = window.confirm("¿Estás seguro de que deseas editar este producto?");
+        if (!confirmacion) {
+            return; // Si el usuario cancela, no hace nada
+        }
+    
         try {
             const productoRef = doc(db, "Productos", productoSeleccionado.id);
             await updateDoc(productoRef, {
@@ -149,13 +163,14 @@ const Productos = () => {
                 cantidad: parseFloat(productoSeleccionado.cantidad),
                 precio: parseFloat(productoSeleccionado.precio)
             });
-
+    
             setShowEditarModal(false); // Cierra el modal
             obtenerProductos(); // Recargar los productos después de editar
         } catch (e) {
             console.error("Error al editar el producto: ", e);
         }
     };
+    
 
     const handleEntrada = (producto) => {
         setProductoSeleccionado(producto);
@@ -207,7 +222,7 @@ const Productos = () => {
                     <tr>
                         <th>Nombre</th>
                         <th>Precio</th>
-                        <th>Cantidad</th>
+                        <th>Stock</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -216,7 +231,7 @@ const Productos = () => {
                         productosFiltrados.map((producto) => (
                             <tr key={producto.id}>
                                 <td>{producto.nombre}</td>
-                                <td>{producto.precio}</td>
+                                <td>$ {producto.precio}</td>
                                 <td>{producto.cantidad}</td>
                               
                                 <td>
