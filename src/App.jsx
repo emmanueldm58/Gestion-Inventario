@@ -12,22 +12,21 @@ import { db } from './firebase';
 const App = () => {
   const [productos, setProductos] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  // Función para obtener los productos desde Firebase y escuchar cambios en tiempo real
+
   const obtenerProductos = () => {
     const unsubscribe = onSnapshot(collection(db, 'Productos'), (querySnapshot) => {
       const dataFirebase = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      setProductos(dataFirebase);// Actualiza el estado de productos
+      setProductos(dataFirebase);
     });
-    // Regresar la función de limpieza para detener la escucha cuando el componente se desmonte
     return unsubscribe;
   };
-// Cargar los productos y escuchar cambios en tiempo real cuando el componente se monta
+
   useEffect(() => {
     const unsubscribe = obtenerProductos();
-    return () => unsubscribe();// Limpia la escucha cuando el componente se desmonte
+    return () => unsubscribe();
   }, []);
 
   const addNotification = (message, id) => {
@@ -38,7 +37,7 @@ const App = () => {
   };
 
   const removeNotification = (id) => {
-    setNotifications((prevNotifications) => 
+    setNotifications((prevNotifications) =>
       prevNotifications.filter(notification => notification.id !== id)
     );
     setTimeout(() => {
@@ -62,12 +61,18 @@ const App = () => {
     <BrowserRouter>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Navbar />
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999 }}>
-          {notifications.map(notification => (
-            <Notification 
-              key={notification.id} 
-              message={notification.message} 
-              onClose={() => removeNotification(notification.id)} 
+        <div style={{
+          position: 'fixed',
+          top: 20,
+          right: 20,
+          zIndex: 999,
+        }}>
+          {notifications.map((notification, index) => (
+            <Notification
+              key={notification.id}
+              message={notification.message}
+              onClose={() => removeNotification(notification.id)}
+              style={{ marginTop: `${index * 130}px` }} // Espacio entre cada notificación
             />
           ))}
         </div>

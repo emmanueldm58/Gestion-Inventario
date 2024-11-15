@@ -1,26 +1,21 @@
 /* src/Components/Notification.css */
 .notification {
-  position: relative;
-  max-width: 500px; /* Define un ancho máximo */
-  margin: 10px auto; /* Centra la notificación horizontalmente */
-  background-color: #f44336;
-  color: white;
-  padding: 10px;
-  border-radius: 5px;
-  z-index: 1000;
+  background-color: #f8d7da; /* Fondo de notificación */
+  color: #721c24; /* Color del texto */
+  padding: 10px; /* Espaciado interno */
+  border-radius: 5px; /* Bordes redondeados */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra */
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* Espacio entre texto y botón */
   align-items: center;
-}
-
-.notification p {
-  margin: 0;
+  width: 250px; /* Ancho fijo */
+  transition: transform 0.3s ease, opacity 0.3s ease; /* Efecto suave */
 }
 
 .close-button {
   background: transparent;
   border: none;
-  color: white;
-  cursor: pointer;
+  color: #721c24;
   font-weight: bold;
+  cursor: pointer;
 }
