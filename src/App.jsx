@@ -11,8 +11,7 @@ import { db } from './firebase';
 
 const App = () => {
   const [productos, setProductos] = useState([]);
-  const [showNotification, setShowNotification] = useState(false);
-
+  const [notifications, setNotifications] = useState([]);
   // Función para obtener los productos desde Firebase y escuchar cambios en tiempo real
   const obtenerProductos = () => {
     const unsubscribe = onSnapshot(collection(db, 'Productos'), (querySnapshot) => {
@@ -20,39 +19,58 @@ const App = () => {
         id: doc.id,
         ...doc.data()
       }));
-      setProductos(dataFirebase); // Actualiza el estado de productos
+      setProductos(dataFirebase);// Actualiza el estado de productos
     });
-
     // Regresar la función de limpieza para detener la escucha cuando el componente se desmonte
     return unsubscribe;
   };
-
-  // Cargar los productos y escuchar cambios en tiempo real cuando el componente se monta
+// Cargar los productos y escuchar cambios en tiempo real cuando el componente se monta
   useEffect(() => {
     const unsubscribe = obtenerProductos();
-    return () => unsubscribe(); // Limpia la escucha cuando el componente se desmonte
+    return () => unsubscribe();// Limpia la escucha cuando el componente se desmonte
   }, []);
 
-  // Configurar un intervalo para mostrar la notificación cada 15 segundos si hay productos con stock bajo
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const productosBajos = productos.filter(producto => producto.cantidad < 10);
-      if (productosBajos.length > 0) {
-        setShowNotification(true);
-        setTimeout(() => setShowNotification(false), 5000); // Oculta la notificación después de 5 segundos
-      }
-    }, 15000); // Verificar cada 15 segundos
+  const addNotification = (message, id) => {
+    setNotifications((prevNotifications) => [
+      ...prevNotifications,
+      { id, message }
+    ]);
+  };
 
-    return () => clearInterval(interval); // Limpia el intervalo al desmontar el componente
+  const removeNotification = (id) => {
+    setNotifications((prevNotifications) => 
+      prevNotifications.filter(notification => notification.id !== id)
+    );
+    setTimeout(() => {
+      const producto = productos.find(p => p.id === id && p.cantidad < 10);
+      if (producto) {
+        addNotification(`Producto: ${producto.nombre}, Stock bajo: ${producto.cantidad}`, id);
+      }
+    }, 10000);
+  };
+
+  useEffect(() => {
+    const productosBajos = productos.filter(producto => producto.cantidad < 10);
+    productosBajos.forEach(producto => {
+      if (!notifications.some(notification => notification.id === producto.id)) {
+        addNotification(`Producto: ${producto.nombre}, Stock bajo: ${producto.cantidad}`, producto.id);
+      }
+    });
   }, [productos]);
 
   return (
     <BrowserRouter>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Navbar />
-        {showNotification && (
-          <Notification message="¡Alerta! Algunos productos están con stock bajo (menos de 10)." />
-        )}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999 }}>
+          {notifications.map(notification => (
+            <Notification 
+              key={notification.id} 
+              message={notification.message} 
+              onClose={() => removeNotification(notification.id)} 
+            />
+          ))}
+        </div>
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Productos productos={productos} />} />
@@ -66,5 +84,3 @@ const App = () => {
 };
 
 export default App;
-
-

@@ -1,13 +1,26 @@
 /* src/Components/Notification.css */
 .notification {
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #f44336;
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    z-index: 1000;
-  }
-  
+  position: relative;
+  max-width: 500px; /* Define un ancho máximo */
+  margin: 10px auto; /* Centra la notificación horizontalmente */
+  background-color: #f44336;
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification p {
+  margin: 0;
+}
+
+.close-button {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
