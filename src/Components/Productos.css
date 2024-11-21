@@ -1,0 +1,114 @@
+/* Botones generales */
+button {
+    padding: 5px 15px;  /* Reducir el padding */
+    font-size: 14px;     /* Reducir el tamaño de la fuente */
+    border: none;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Alineación de botones en fila (lado a lado) */
+.button-group {
+    display: flex;
+    justify-content: flex-end;  /* Alinea los botones a la derecha */
+    gap: 10px;  /* Espacio entre los botones */
+    margin-bottom: 20px; /* Espaciado inferior del grupo */
+}
+
+/* Ajustes adicionales a los botones */
+button {
+    max-width: 150px; /* Limita el ancho del botón */
+    width: auto;  /* Asegura que los botones no se estiren más de lo necesario */
+}
+
+/* Tablas */
+.table {
+    width: 100%;
+    border-collapse: collapse; /* Quita los espacios entre bordes */
+    margin-top: 20px;
+}
+
+.table th, .table td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #dee2e6; /* Bordes de las celdas */
+}
+
+.table th {
+    background-color: #f8f9fa; /* Fondo claro para encabezados */
+    font-weight: bold;
+}
+
+.table tbody tr:nth-child(odd) {
+    background-color: #f9f9f9; /* Colorea las filas impares */
+}
+
+.table tbody tr:hover {
+    background-color: #f1f1f1; /* Fondo al pasar el cursor */
+}
+
+/* Modales */
+.modal {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Fondo semi-transparente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente */
+}
+
+.modal-content {
+    background: #fff;
+    position: relative;
+    margin: 100px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 80%;
+    max-width: 500px;
+}
+
+.modal h3 {
+    margin-bottom: 20px;
+}
+
+.modal .form-label {
+    font-weight: bold;
+}
+
+.modal button {
+    margin-top: 15px;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+    button {
+        width: 100%;  /* En pantallas pequeñas, los botones ocupan todo el ancho disponible */
+        padding: 8px; /* Ajusta el padding para dispositivos pequeños */
+    }
+
+    .table th, .table td {
+        padding: 8px; /* Reduce el padding en celdas */
+    }
+
+    .modal-content {
+        width: 90%; /* Ocupa más espacio en pantallas pequeñas */
+    }
+}
+
+
