@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';  // Asegúrate de tener tu Firebase configurado correctamente
+import { db } from '../firebase'; // Asegúrate de tener tu Firebase configurado correctamente
 import { collection, getDocs } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 
@@ -10,17 +10,43 @@ const Historial = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // Función para comparar fechas (sin hora) basadas en cadenas de texto
+    const compararFechasSinHora = (fecha1, fecha2) => {
+        const fecha1Str = fecha1.split(' ')[0]; // Extraer "YYYY-MM-DD" de "YYYY-MM-DD HH:mm:ss"
+        const fecha2Str = fecha2.split(' ')[0];
+        return fecha1Str === fecha2Str;
+    };
+
+    // Filtro del historial según texto de búsqueda y fecha seleccionada
+    const filtrarHistorial = (producto) => {
+        const filtroTexto = filtro.toLowerCase();
+        const fechaSeleccionada = fechaFiltro ? fechaFiltro : null;
+
+        // Validar que el producto tenga las propiedades requeridas
+        const cumpleTexto = (
+            (producto.producto?.toLowerCase().includes(filtroTexto) || '') ||
+            (producto.accion?.toLowerCase().includes(filtroTexto) || '')
+        );
+
+        const cumpleFecha = fechaSeleccionada
+            ? compararFechasSinHora(producto.fecha, fechaSeleccionada)
+            : true;
+
+        return cumpleTexto && cumpleFecha;
+    };
+
     // Función para obtener los registros del historial desde la base de datos
     const obtenerHistorial = async () => {
         try {
             const querySnapshot = await getDocs(collection(db, 'Historial'));
-            const data = querySnapshot.docs.map(doc => ({
+            const data = querySnapshot.docs.map((doc) => ({
                 id: doc.id,
-                ...doc.data()
+                ...doc.data(),
             }));
 
-            // Ordenamos los productos por fecha (de más reciente a más antiguo)
-            data.sort((a, b) => new Date(b.fecha.toDate()) - new Date(a.fecha.toDate()));
+            // Ordenar los datos por fecha (de más reciente a más antiguo)
+            data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
             setHistorial(data);
             setLoading(false);
         } catch (e) {
@@ -30,47 +56,13 @@ const Historial = () => {
         }
     };
 
-    // Función para comparar dos fechas ignorando la hora
-    const compararFechasSinHora = (fecha1, fecha2) => {
-        const d1 = new Date(fecha1);
-        const d2 = new Date(fecha2);
-
-        // Convertimos ambas fechas a formato YYYY-MM-DD para ignorar las horas
-        const fecha1Str =`${d1.getUTCFullYear()}-${(d1.getUTCMonth() + 1).toString().padStart(2, '0')}-${d1.getUTCDate().toString().padStart(2, '0')}`;
-        const fecha2Str =`${d2.getUTCFullYear()}-${(d2.getUTCMonth() + 1).toString().padStart(2, '0')}-${d2.getUTCDate().toString().padStart(2, '0')}`;
-
-        return fecha1Str === fecha2Str;
-    };
-
-    // Filtro del historial según el texto de búsqueda y fecha seleccionada
-    const filtrarHistorial = (producto) => {
-        const fechaProducto = producto.fecha.toDate(); // Convertir el timestamp a Date
-        const fechaSeleccionada = fechaFiltro ? new Date(fechaFiltro) : null;
-
-        // Verificamos si el nombre o tipo de producto incluye el texto de búsqueda (filtro)
-        const filtroNombre = producto.producto.toLowerCase().includes(filtro.toLowerCase()) ||
-                             producto.tipo.toLowerCase().includes(filtro.toLowerCase());
-        
-        // Si se seleccionó una fecha, filtramos también por la fecha (comparando solo la fecha, sin hora)
-        const filtroFecha = fechaSeleccionada ? compararFechasSinHora(fechaProducto, fechaSeleccionada) : true;
-
-        // Devolverá true si se cumple el filtro por nombre o tipo y, si hay un filtro de fecha, también debe coincidir.
-        return filtroNombre && filtroFecha;
-    };
-
     // Función para generar el reporte de Excel con los productos filtrados
     const generarReporte = () => {
         // Filtrar los productos según el filtro de búsqueda y fecha
         const productosFiltrados = historial.filter(filtrarHistorial);
 
-        // Formatear las fechas correctamente antes de generar el reporte
-        const productosConFechasFormateadas = productosFiltrados.map(item => ({
-            ...item,
-            fecha: new Date(item.fecha.toDate()).toLocaleString()
-        }));
-
-        // Generar el archivo Excel solo con los productos filtrados y sus fechas formateadas
-        const ws = XLSX.utils.json_to_sheet(productosConFechasFormateadas);
+        // Generar el archivo Excel solo con los productos filtrados
+        const ws = XLSX.utils.json_to_sheet(productosFiltrados);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Historial de Productos');
         XLSX.writeFile(wb, 'Historial_Productos.xlsx');
@@ -91,7 +83,7 @@ const Historial = () => {
                     <input
                         type="text"
                         className="form-control w-50"
-                        placeholder="Buscar por producto, tipo o nombre"
+                        placeholder="Buscar por producto o acción"
                         value={filtro}
                         onChange={(e) => setFiltro(e.target.value)}
                     />
@@ -109,29 +101,33 @@ const Historial = () => {
             <table className="table table-bordered">
                 <thead>
                     <tr>
+                        <th>Usuario</th>
                         <th>Producto</th>
-                        <th>Tipo</th>
-                        <th>Cantidad Movida</th>
+                        <th>Cantidad Movida/Precio</th>
                         <th>Cantidad Anterior</th>
                         <th>Cantidad Nueva</th>
+                        <th>Acción</th>
                         <th>Fecha</th>
                     </tr>
                 </thead>
                 <tbody>
                     {historial.length > 0 ? (
-                        historial.filter(filtrarHistorial).map(registro => (
+                        historial.filter(filtrarHistorial).map((registro) => (
                             <tr key={registro.id}>
+                                <td>{registro.user}</td>
                                 <td>{registro.producto}</td>
-                                <td>{registro.tipo}{registro.accion}</td>
-                                <td>{registro.cantidadMovida}</td>
-                                <td>{registro.cantidadAnterior}</td>
-                                <td>{registro.cantidadNueva}</td>
-                                <td>{new Date(registro.fecha.toDate()).toLocaleString()}</td>
+                                <td>{registro.cantidadMovida || registro.precio || registro.cantidad}</td>
+                                <td>{registro.cantidadAnterior || "N/A"}</td>
+                                <td>{registro.cantidadNueva || registro.cantidad}</td>
+                                <td>{registro.accion}</td>
+                                <td>{registro.fecha}</td> 
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="5" className="text-center">No se encontraron registros.</td>
+                            <td colSpan="7" className="text-center">
+                                No se encontraron registros.
+                            </td>
                         </tr>
                     )}
                 </tbody>

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import './Productos.css';
-import { db } from '../firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { collection, getDocs, setDoc, getDoc, addDoc, updateDoc, doc, deleteDoc, Timestamp } from 'firebase/firestore';
 import * as XLSX from 'xlsx'; // Para generar el reporte de Excel
+import { onAuthStateChanged } from "firebase/auth";
 
 const Productos = ({ role, permisos }) => {
     const [productos, setProductos] = useState([]);
@@ -15,10 +16,22 @@ const Productos = ({ role, permisos }) => {
         precio: 0,
     });
     const [showEditarModal, setShowEditarModal] = useState(false);
+    const [productoEditar, setProductoEditar] = useState({
+        nombre: '',
+        cantidad: 0,
+        precio: 0,
+    });
     const [showModal, setShowModal] = useState(false);
     const [showMovimientoModal, setShowMovimientoModal] = useState(false);
-    const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-    const [movimiento, setMovimiento] = useState({ cantidad: 0, tipo: '', fecha: Timestamp.now() });
+
+    const [productoSeleccionado, setProductoSeleccionado] = useState({
+        nombre: '',
+        cantidad: 0,
+        precio: 0,
+    });
+    const [movimiento, setMovimiento] = useState({ cantidad: 0, accion: '', fecha: new Date().toISOString().replace('T', ' ').slice(0, 19) });
+    const fechaRegistro = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const [userA, setUser] = useState({});
 
     // Obtener los productos desde Firestore
     const obtenerProductos = async () => {
@@ -39,7 +52,42 @@ const Productos = ({ role, permisos }) => {
 
     useEffect(() => {
         obtenerProductos();
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                verificarYRegistrarUsuario(user);
+            }
+            setUser(user)
+        });
+        return () => unsubscribe();
     }, []);
+
+    const verificarYRegistrarUsuario = async (user) => {
+        if (!user) return;
+
+        try {
+            const userDocRef = doc(db, "Users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (!userDoc.exists()) {
+                await setDoc(userDocRef, {
+                    nombre: user.displayName || "Usuario",
+                    email: user.email,
+                    role: "user", // Rol por defecto
+                    permisos: {
+                        registrarMovimiento: false,
+                        lector: false,
+                        editar: false,
+                        eliminar: false,
+                        addProducto: false
+                    }, // Permisos básicos por defecto
+                    fechaRegistro: fechaRegistro,
+                });
+            }
+
+        } catch (e) {
+            console.error("Error al verificar/registrar usuario: ", e);
+        }
+    };
 
     const handleSearchChange = (e) => setSearchTerm(e.target.value);
 
@@ -48,21 +96,57 @@ const Productos = ({ role, permisos }) => {
     );
     const handleSubmitEditarProducto = async (e) => {
         e.preventDefault();
+
         try {
+            // Crear una copia profunda del producto seleccionado antes de la edición
+            const productoOriginal = productoEditar;
+            // Guardar el estado "antes" de la edición en el historial
+            await addDoc(collection(db, 'Historial'), {
+                user: userA?.email || 'Usuario desconocido', // Usuario autenticado
+                accion: 'Producto Antes de Editar',
+                producto: productoOriginal.nombre,
+                productoId: productoOriginal.id,
+                cantidad: parseFloat(productoOriginal.cantidad),
+                precio: parseFloat(productoOriginal.precio),
+                fecha: new Date().toISOString().replace('T', ' ').slice(0, 19),
+            });
+            // Realizar los cambios en productoSeleccionado (esto es lo que el usuario editó)
+            const productoEditado = {
+                ...productoSeleccionado,
+                cantidad: Number(productoSeleccionado.cantidad),
+                precio: Number(productoSeleccionado.precio),
+            };
+
+            // Actualizar el producto en la base de datos con los valores editados
             const productoRef = doc(db, "Productos", productoSeleccionado.id);
             await updateDoc(productoRef, {
                 nombre: productoSeleccionado.nombre,
-                cantidad: Number(productoSeleccionado.cantidad), // Asegúrate de convertirlo a número
-                precio: Number(productoSeleccionado.precio), // Asegúrate de convertirlo a número
+                cantidad: productoEditado.cantidad,
+                precio: productoEditado.precio,
             });
-            alert("Producto actualizado con éxito.");
+
+
+            // Guardar el estado "después" de la edición en el historial
+            await addDoc(collection(db, 'Historial'), {
+                user: userA?.email || 'Usuario desconocido', // Usuario autenticado
+                accion: 'Producto Después de Editar',
+                producto: productoEditado.nombre,
+                productoId: productoEditado.id,
+                cantidad: parseFloat(productoEditado.cantidad),
+                precio: parseFloat(productoEditado.precio),
+                fecha: new Date().toISOString().replace('T', ' ').slice(0, 19),
+            });
+
+            // Confirmar la actualización y cerrar el modal
+            alert('Producto actualizado con éxito.');
             setShowEditarModal(false);
-            obtenerProductos(); // Recarga los productos después de editar
+            obtenerProductos(); // Recargar productos
         } catch (error) {
             console.error("Error al actualizar el producto:", error);
             alert("Hubo un error al actualizar el producto.");
         }
     };
+
 
 
 
@@ -73,19 +157,19 @@ const Productos = ({ role, permisos }) => {
         try {
             // Registrar la acción en el historial
             await addDoc(collection(db, 'Historial'), {
+                user: userA.email,
                 accion: 'Eliminar',
                 producto: producto.nombre,
                 productoId: producto.id,
-                cantidad: producto.cantidad,
-                precio: producto.precio,
-                fecha: Timestamp.now(),
+                cantidad: parseFloat(producto.cantidad),
+                precio: parseFloat(producto.precio),
+                fecha: fechaRegistro,
             });
 
             // Eliminar el producto de Firestore
             const productoRef = doc(db, 'Productos', producto.id);
             await deleteDoc(productoRef);
 
-            console.log('Producto eliminado');
             obtenerProductos(); // Recargar los productos después de eliminar
         } catch (e) {
             console.error('Error al eliminar el producto: ', e);
@@ -96,7 +180,7 @@ const Productos = ({ role, permisos }) => {
         const ws = XLSX.utils.json_to_sheet(productos); // Convertir productos a hoja de Excel
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Productos');
-        XLSX.writeFile(wb, 'productos_report.xlsx'); // Descargar archivo Excel
+        XLSX.writeFile(wb, 'productos_report_Stock.xlsx'); // Descargar archivo Excel
     };
 
     const handleNuevoProductoChange = (e) => {
@@ -112,9 +196,20 @@ const Productos = ({ role, permisos }) => {
         try {
             await addDoc(collection(db, 'Productos'), {
                 ...nuevoProducto,
-                cantidad: parseInt(nuevoProducto.cantidad),
+                user: userA.email,
+                cantidad: parseFloat(nuevoProducto.cantidad),
                 precio: parseFloat(nuevoProducto.precio),
-                fechaCreacion: Timestamp.now(),
+                fechaRegistro: fechaRegistro,
+            });
+
+            // Registrar la acción en el historial
+            await addDoc(collection(db, 'Historial'), {
+                user: userA.email,
+                accion: 'Producto Nuevo',
+                producto: nuevoProducto.nombre,
+                cantidad: nuevoProducto.cantidad,
+                precio: nuevoProducto.precio,
+                fecha: new Date().toISOString().replace('T', ' ').slice(0, 19),
             });
             setNuevoProducto({ nombre: '', cantidad: 0, precio: 0 });
             setShowModal(false);
@@ -133,54 +228,52 @@ const Productos = ({ role, permisos }) => {
     };
 
     const handleRegistrarMovimiento = async () => {
+        if (!userA.email) {
+            alert('Por favor, inicia sesión para realizar el movimiento.');
+            return;
+        }
         if (!productoSeleccionado) return;
 
-        // Convertir la cantidad a número
-        const cantidadMovida = parseFloat(movimiento.cantidad);
+        const cantidadMovida = movimiento.cantidad;
+
+        // Verificar que la cantidad no sea negativa
+        if (cantidadMovida < 0) {
+            alert('La cantidad no puede ser negativa.');
+            return;
+        }
+
         if (isNaN(cantidadMovida) || cantidadMovida <= 0) {
             alert('Por favor ingrese una cantidad válida.');
             return;
         }
 
         // Confirmación antes de proceder con el movimiento
-        const confirmAction = window.confirm(`¿Estás seguro de que deseas ${movimiento.tipo === 'entrada' ? 'agregar' : 'restar'} ${cantidadMovida} unidades?`);
+        const confirmAction = window.confirm(`¿Estás seguro de que deseas ${movimiento.accion === 'entrada' ? 'agregar' : 'sacar'} ${cantidadMovida} unidades?`);
         if (!confirmAction) return;  // Si el usuario cancela, no se realiza el movimiento.
+         try {
 
-        try {
             // Registrar movimiento en la colección Historial
             const nuevoMovimiento = {
                 ...movimiento,
+                user: userA.email,
+                cantidad: parseFloat(cantidadMovida),
                 producto: productoSeleccionado.nombre,
                 productoId: productoSeleccionado.id,
-                cantidadAnterior: productoSeleccionado.cantidad, // Cantidad antes del movimiento
-                cantidadMovida,
-                cantidadNueva: movimiento.tipo === 'entrada'
-                    ? productoSeleccionado.cantidad + cantidadMovida
-                    : productoSeleccionado.cantidad - cantidadMovida,
+                cantidadAnterior: parseFloat(productoSeleccionado.cantidad), // Cantidad antes del movimiento
+
+                cantidadNueva: movimiento.accion === 'entrada'
+                    ? parseFloat(productoSeleccionado.cantidad) + parseFloat(cantidadMovida)
+                    : parseFloat(productoSeleccionado.cantidad) - parseFloat(cantidadMovida),
             };
             await addDoc(collection(db, "Historial"), nuevoMovimiento);
 
-            // Actualizar la cantidad del producto
-            let nuevaCantidad = productoSeleccionado.cantidad;
-            if (movimiento.tipo === 'entrada') {
-                nuevaCantidad += cantidadMovida;
-            } else if (movimiento.tipo === 'salida') {
-                nuevaCantidad -= cantidadMovida;
-            }
-
-            // Verificar que la cantidad no sea negativa
-            if (nuevaCantidad < 0) {
-                alert('La cantidad no puede ser negativa.');
-                return;
-            }
-
             // Actualizar el producto en la base de datos
             const productoRef = doc(db, "Productos", productoSeleccionado.id);
-            await updateDoc(productoRef, { cantidad: nuevaCantidad });
+            await updateDoc(productoRef, { cantidad: nuevoMovimiento.cantidadNueva });
 
             // Resetear el formulario y cerrar el modal
             setShowMovimientoModal(false);
-            setMovimiento({ cantidad: 0, tipo: '', fecha: Timestamp.now() });
+            setMovimiento({ cantidad: 0, accion: '', fecha: new Date().toISOString().replace('T', ' ').slice(0, 19) });
             obtenerProductos();  // Recargar los productos después del movimiento
 
         } catch (e) {
@@ -244,7 +337,7 @@ const Productos = ({ role, permisos }) => {
                             productosFiltrados.map((producto) => (
                                 <tr key={producto.id}>
                                     <td>{producto.nombre}</td>
-                                    <td>$ {producto.precio}</td>
+                                    <td>{producto.precio}</td>
                                     <td>{producto.cantidad}</td>
                                     <td>
                                         <div className="dropdown">
@@ -281,6 +374,7 @@ const Productos = ({ role, permisos }) => {
                                                                 className="dropdown-item"
                                                                 onClick={() => {
                                                                     setProductoSeleccionado(producto);
+                                                                    setProductoEditar(producto);
                                                                     setShowEditarModal(true);
                                                                 }}
                                                             >
@@ -315,7 +409,7 @@ const Productos = ({ role, permisos }) => {
                         )}
                     </tbody>
                 </table>
-             ) : (
+            ) : (
                 <div style={{ color: "red", textAlign: "center", marginTop: "20px" }}>
                     <h2>Acceso restringido</h2>
                     <p>No tienes los permisos necesarios para ver la tabla de productos.</p>
@@ -468,8 +562,32 @@ const Productos = ({ role, permisos }) => {
                     <div className="modal" onClick={() => setShowMovimientoModal(false)}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <h3>Registrar Movimiento</h3>
-                            <form onSubmit={(e) => { e.preventDefault(); handleRegistrarMovimiento(); }}>
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleRegistrarMovimiento();
+                                }}
+                            >
                                 <p>Producto: {productoSeleccionado?.nombre}</p>
+                                
+                                <div className="mb-3">
+                                    <label htmlFor="tipo" className="form-label">
+                                        Tipo de Movimiento
+                                    </label>
+                                    <select
+                                        id="accion"
+                                        name="accion"
+                                        className="form-control"
+                                        value={movimiento.accion}
+                                        onChange={handleMovimientoChange}
+                                        required
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="entrada">Entrada</option>
+                                        <option value="salida">Salida</option>
+                                    </select>
+                                </div>
+                                
                                 <div className="mb-3">
                                     <label htmlFor="cantidad" className="form-label">
                                         Cantidad
@@ -480,27 +598,28 @@ const Productos = ({ role, permisos }) => {
                                         id="cantidad"
                                         name="cantidad"
                                         value={movimiento.cantidad}
-                                        onChange={handleMovimientoChange}
+                                        onChange={(e) => {
+                                            // Obtener el valor ingresado
+                                            movimiento.cantidad = parseInt(e.target.value, 10);
+                    
+                                            // Validar que la cantidad no sea mayor al stock disponible
+                                            if (movimiento.accion === "salida" && movimiento.cantidad > productoSeleccionado.cantidad) {
+                                                movimiento.cantidad = productoSeleccionado.cantidad; // Limitar la cantidad a la disponible
+                                            }
+                    
+                                            // Actualizar el estado con la cantidad validada
+                                            handleMovimientoChange({
+                                                target: {
+                                                    name: "cantidad",
+                                                    value: movimiento.cantidad,
+                                                },
+                                            });
+                                        }}
+                                        max={movimiento.accion === "salida" ? productoSeleccionado.cantidad : undefined}
                                         required
                                     />
                                 </div>
-                                <div className="mb-3">
-                                    <label htmlFor="tipo" className="form-label">
-                                        Tipo de Movimiento
-                                    </label>
-                                    <select
-                                        id="tipo"
-                                        name="tipo"
-                                        className="form-control"
-                                        value={movimiento.tipo}
-                                        onChange={handleMovimientoChange}
-                                        required
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        <option value="entrada">Entrada</option>
-                                        <option value="salida">Salida</option>
-                                    </select>
-                                </div>
+
 
                                 <button type="submit" className="btn btn-primary">
                                     Registrar Movimiento
@@ -515,6 +634,7 @@ const Productos = ({ role, permisos }) => {
                             </form>
                         </div>
                     </div>
+
                 )
             }
         </div >
