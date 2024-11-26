@@ -1,4 +1,5 @@
 // src/Components/Navbar/Navbar.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -48,14 +49,13 @@ const Navbar = ({ role }) => {
       </div>
       <nav className={`navbar ${menuActive ? 'active' : ''}`}>
         <Link to="/" onClick={handleLinkClick}>Productos</Link>
-       {/* {role === 'admin' && (
-          <Link to="/administrador" onClick={handleLinkClick}>Admin</Link>
-        )}*/}
+
         {role === 'admin' && (
-          <Link to="/historial" onClick={handleLinkClick}>Historial</Link>
-        )}
-        {role === 'admin' && (
-          <Link to="/usuarios" onClick={handleLinkClick}>Usuarios</Link>
+          <>
+            <Link to="/historial" onClick={handleLinkClick}>Historial</Link>
+            <Link to="/usuarios" onClick={handleLinkClick}>Usuarios</Link>
+            <Link to="/graficos" onClick={handleLinkClick}>Gráficos</Link> {/* Enlace a la página de gráficos */}
+          </>
         )}
 
         {/* Agregar el botón de cerrar sesión */}

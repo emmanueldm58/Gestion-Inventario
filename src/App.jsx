@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { auth, db } from './firebase';
@@ -10,17 +11,17 @@ import Productos from './Components/Productos.jsx';
 import Historial from './Components/Historial.jsx';
 import Administrador from './Components/Administrador.jsx';
 import Login from './Components/Login.jsx';
-import Notification from './Components/Notification';  // Asegúrate de importar el componente de notificación
+import Notification from './Components/Notification'; 
+import ReporteGraficos from './Components/ReporteGraficos'; // Importa el componente de gráficos
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [role, setRole] = useState(''); // Estado para almacenar el rol
-  const [permisos, setPermisos] = useState(''); // Estado para almacenar el rol
+  const [role, setRole] = useState('');
+  const [permisos, setPermisos] = useState('');
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState([]);
-  const [notifications, setNotifications] = useState([]);  // Estado de notificaciones
+  const [notifications, setNotifications] = useState([]);
 
-  // Función para obtener los productos y verificar el stock
   const obtenerProductos = () => {
     const unsubscribe = onSnapshot(collection(db, 'Productos'), (querySnapshot) => {
       const dataFirebase = querySnapshot.docs.map(doc => ({
@@ -36,24 +37,18 @@ const App = () => {
         }
       });
     });
-    // Regresar la función de limpieza para detener la escucha cuando el componente se desmonte
     return unsubscribe;
   };
 
-  // Cargar los productos y escuchar cambios en tiempo real cuando el componente se monta
   useEffect(() => {
     const unsubscribe = obtenerProductos();
-    return () => unsubscribe(); // Limpia la escucha cuando el componente se desmonte
+    return () => unsubscribe(); 
   }, []);
 
   const addNotification = (message, id) => {
-    const newNotification = {
-      id,
-      message,
-    };
+    const newNotification = { id, message };
     setNotifications((prevNotifications) => [...prevNotifications, newNotification]);
 
-    // Eliminar notificación después de 5 segundos
     setTimeout(() => {
       removeNotification(id);
     }, 5000);
@@ -65,34 +60,28 @@ const App = () => {
     );
   };
 
-  // Verifica el estado de autenticación y el rol
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsAuthenticated(true);
-
         try {
-          // Obtener el rol del usuario desde Firestore
           const userDoc = await getDoc(doc(db, "Users", user.uid));
-
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setRole(userData.role); // Establece el rol del usuario
+            setRole(userData.role); 
             setPermisos(userData.permisos); 
           } else {
             setPermisos('');
-            setRole(''); // Si no se encuentra el documento, el rol será vacío
+            setRole('');
           }
         } catch (error) {
           setPermisos('');
-          setRole(''); // Si ocurre un error, se vacía el rol
+          setRole('');
         }
-
-        // Notificación de bienvenida cuando el usuario inicie sesión
         addNotification('Bienvenido, ' + user.email, 'welcome');
       } else {
         setIsAuthenticated(false);
-        setRole(''); // Si no hay usuario, el rol es vacío
+        setRole('');
       }
       setLoading(false);
     });
@@ -107,10 +96,8 @@ const App = () => {
   return (
     <BrowserRouter>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        {/* Pasa el rol al Navbar */}
         {isAuthenticated && <Navbar role={role} />}
 
-        {/* Mostrar notificaciones */}
         <div style={{
           position: 'fixed',
           top: 20,
@@ -122,42 +109,22 @@ const App = () => {
               key={notification.id}
               message={notification.message}
               onClose={() => removeNotification(notification.id)}
-              style={{ marginTop: `${index * 130}px` }} // Espacio entre cada notificación
+              style={{ marginTop: `${index * 130}px` }} 
             />
           ))}
         </div>
 
         <div style={{ flex: 1 }}>
           <Routes>
-            {/* Ruta para productos, solo accesible si el usuario está autenticado */}
-            <Route
-              path="/"
-              element={isAuthenticated ? <Productos role={role} productos={productos} permisos={permisos}/> : <Navigate to="/login" />}
-            />
+            <Route path="/" element={isAuthenticated ? <Productos role={role} productos={productos} permisos={permisos}/> : <Navigate to="/login" />} />
+            <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+            <Route path="/usuarios" element={role === 'admin' ? <Usuarios role={role}/> : <Navigate to="/" />} />
+            <Route path="/administrador" element={role === 'admin' ? <Administrador /> : <Navigate to="/" />} />
+            <Route path="/historial" element={role === 'admin' ? <Historial /> : <Navigate to="/" />} />
 
-            {/* Ruta para login */}
-            <Route
-              path="/login"
-              element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
-            />
-            {/* Ruta para usuarios */}
-            <Route
-              path="/usuarios"
-              element={role === 'admin' ? <Usuarios role={role}/> : <Navigate to="/" />}
-            />
-
-            {/* Ruta para administrador, solo accesible si el usuario es administrador */}
-            <Route
-              path="/administrador"
-              element={role === 'admin' ? <Administrador /> : <Navigate to="/" />}
-            />
-
-            <Route
-              path="/historial"
-              element={role === 'admin' ? <Historial /> : <Navigate to="/" />}
-            />
-
-            {/* Ruta para páginas no encontradas */}
+            {/* Ruta para el reporte gráfico */}
+            <Route path="/graficos" element={isAuthenticated ? <ReporteGraficos productos={productos} /> : <Navigate to="/login" />} />
+            
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </div>

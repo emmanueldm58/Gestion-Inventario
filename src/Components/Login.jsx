@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "../firebase"; // Asegúrate de que estas referencias sean correctas
+import { doc, setDoc } from "firebase/firestore"; // Para manejar Firestore
 import { useNavigate } from "react-router-dom";
 import './Login.css';
 
@@ -15,7 +15,7 @@ const Login = () => {
     email: "",
     password: ""
   });
-  
+
   const navigate = useNavigate();
 
   // Manejo del login
@@ -34,7 +34,25 @@ const Login = () => {
     e.preventDefault();
     try {
       // Crear el usuario en Firebase Authentication
-      await createUserWithEmailAndPassword(auth, nuevoUsuario.email, nuevoUsuario.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, nuevoUsuario.email, nuevoUsuario.password);
+      const user = userCredential.user; // Obtenemos el objeto del usuario registrado
+
+      // Registrar el usuario en Firestore
+      const userDocRef = doc(db, "Users", user.uid);
+      await setDoc(userDocRef, {
+        nombre: nuevoUsuario.nombre,
+        email: nuevoUsuario.email,
+        role: "user", // Rol por defecto
+        permisos: {
+          registrarMovimiento: false,
+          lector: false,
+          editar: false,
+          eliminar: false,
+          addProducto: false
+        },
+        fechaRegistro: new Date().toISOString(), // Fecha actual
+      });
+
       alert("Usuario registrado exitosamente");
       setShowModal(false); // Cerrar el modal
       setNuevoUsuario({ nombre: "", email: "", password: "" }); // Limpiar formulario
@@ -70,7 +88,7 @@ const Login = () => {
         {error && <p className="error">{error}</p>}
         <button type="submit">Iniciar sesión</button>
       </form>
-      
+
       {/* Enlace para abrir el modal de registro */}
       <div className="signup-option">
         <p>¿No tienes cuenta?</p>
