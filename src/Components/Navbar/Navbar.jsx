@@ -53,8 +53,8 @@ const Navbar = ({ role }) => {
         {role === 'admin' && (
           <>
             <Link to="/historial" onClick={handleLinkClick}>Historial</Link>
-            <Link to="/usuarios" onClick={handleLinkClick}>Usuarios</Link>
             <Link to="/graficos" onClick={handleLinkClick}>Gráficos</Link> {/* Enlace a la página de gráficos */}
+            <Link to="/usuarios" onClick={handleLinkClick}>Usuarios</Link>
           </>
         )}
 

@@ -11,7 +11,7 @@ import Productos from './Components/Productos.jsx';
 import Historial from './Components/Historial.jsx';
 import Administrador from './Components/Administrador.jsx';
 import Login from './Components/Login.jsx';
-import Notification from './Components/Notification'; 
+import Notification from './Components/Notification';
 import ReporteGraficos from './Components/ReporteGraficos'; // Importa el componente de gráficos
 
 const App = () => {
@@ -20,29 +20,40 @@ const App = () => {
   const [permisos, setPermisos] = useState('');
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState([]);
+  const [dataHistorial, setDataHistorial] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
   const obtenerProductos = () => {
-    const unsubscribe = onSnapshot(collection(db, 'Productos'), (querySnapshot) => {
+    const unsubscribeProductos = onSnapshot(collection(db, 'Productos'), (querySnapshot) => {
       const dataFirebase = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       setProductos(dataFirebase);
-
-      // Verificar productos con stock bajo y mostrar notificación
       dataFirebase.forEach(producto => {
         if (producto.cantidad < 10) {
           addNotification(`¡Alerta! El producto ${producto.nombre} tiene un stock bajo.`, producto.id);
         }
       });
     });
-    return unsubscribe;
+
+    const unsubscribeHistorial = onSnapshot(collection(db, 'Historial'), (querySnapshot) => {
+      const dataHistorial = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setDataHistorial(dataHistorial);
+    });
+
+    return () => {
+      unsubscribeProductos();
+      unsubscribeHistorial();
+    };
   };
 
   useEffect(() => {
     const unsubscribe = obtenerProductos();
-    return () => unsubscribe(); 
+    return () => unsubscribe();
   }, []);
 
   const addNotification = (message, id) => {
@@ -68,8 +79,8 @@ const App = () => {
           const userDoc = await getDoc(doc(db, "Users", user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setRole(userData.role); 
-            setPermisos(userData.permisos); 
+            setRole(userData.role);
+            setPermisos(userData.permisos);
           } else {
             setPermisos('');
             setRole('');
@@ -109,22 +120,19 @@ const App = () => {
               key={notification.id}
               message={notification.message}
               onClose={() => removeNotification(notification.id)}
-              style={{ marginTop: `${index * 130}px` }} 
+              style={{ marginTop: `${index * 130}px` }}
             />
           ))}
         </div>
 
         <div style={{ flex: 1 }}>
           <Routes>
-            <Route path="/" element={isAuthenticated ? <Productos role={role} productos={productos} permisos={permisos}/> : <Navigate to="/login" />} />
+            <Route path="/" element={isAuthenticated ? <Productos role={role} productos={productos} permisos={permisos} /> : <Navigate to="/login" />} />
             <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-            <Route path="/usuarios" element={role === 'admin' ? <Usuarios role={role}/> : <Navigate to="/" />} />
+            <Route path="/usuarios" element={role === 'admin' ? <Usuarios role={role} /> : <Navigate to="/" />} />
             <Route path="/administrador" element={role === 'admin' ? <Administrador /> : <Navigate to="/" />} />
             <Route path="/historial" element={role === 'admin' ? <Historial /> : <Navigate to="/" />} />
-
-            {/* Ruta para el reporte gráfico */}
-            <Route path="/graficos" element={isAuthenticated ? <ReporteGraficos productos={productos} /> : <Navigate to="/login" />} />
-            
+            <Route path="/graficos" element={isAuthenticated ? <ReporteGraficos historial={dataHistorial} /> : <Navigate to="/login" />} />
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </div>
