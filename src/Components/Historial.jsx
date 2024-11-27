@@ -12,10 +12,15 @@ const Historial = () => {
 
     // Función para comparar fechas (sin hora) basadas en cadenas de texto
     const compararFechasSinHora = (fecha1, fecha2) => {
+        if (!fecha1 || !fecha2) {
+            return false;  // Si alguna de las fechas es inválida, retornamos false
+        }
+    
         const fecha1Str = fecha1.split(' ')[0]; // Extraer "YYYY-MM-DD" de "YYYY-MM-DD HH:mm:ss"
         const fecha2Str = fecha2.split(' ')[0];
         return fecha1Str === fecha2Str;
     };
+    
 
     // Filtro del historial según texto de búsqueda y fecha seleccionada
     const filtrarHistorial = (producto) => {
