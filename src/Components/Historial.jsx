@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebase'; // Asegúrate de tener tu Firebase configurado correctamente
 import { collection, getDocs } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
+import './Historial.css';
 
 const Historial = () => {
     const [historial, setHistorial] = useState([]);
@@ -103,42 +104,46 @@ const Historial = () => {
                     Generar Reporte Excel
                 </button>
             </div>
-            <table className="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Producto</th>
-                        <th>Cantidad Movida/Precio</th>
-                        <th>Cantidad Anterior</th>
-                        <th>Cantidad Nueva</th>
-                        <th>Acción</th>
-                        <th>Fecha</th>
+            <div className="table-responsive">
+    <table className="table table-bordered tabla-ajustada">
+        <thead>
+            <tr>
+                <th style={{ width: '15%' }}>Usuario</th>
+                <th style={{ width: '20%' }}>Producto</th>
+                <th style={{ width: '20%' }}>Cantidad Movida/Precio</th>
+                <th style={{ width: '15%' }}>Cantidad Anterior</th>
+                <th style={{ width: '15%' }}>Cantidad Nueva</th>
+                <th style={{ width: '10%' }}>Acción</th>
+                <th style={{ width: '15%' }}>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>
+            {historial.length > 0 ? (
+                historial.filter(filtrarHistorial).map((registro) => (
+                    <tr key={registro.id}>
+                        <td>{registro.user}</td>
+                        <td>{registro.producto}</td>
+                        <td>{registro.cantidadMovida || registro.precio || registro.cantidad}</td>
+                        <td>{registro.cantidadAnterior || "N/A"}</td>
+                        <td>{registro.cantidadNueva || registro.cantidad}</td>
+                        <td>{registro.accion}</td>
+                        <td>{registro.fecha}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    {historial.length > 0 ? (
-                        historial.filter(filtrarHistorial).map((registro) => (
-                            <tr key={registro.id}>
-                                <td>{registro.user}</td>
-                                <td>{registro.producto}</td>
-                                <td>{registro.cantidadMovida || registro.precio || registro.cantidad}</td>
-                                <td>{registro.cantidadAnterior || "N/A"}</td>
-                                <td>{registro.cantidadNueva || registro.cantidad}</td>
-                                <td>{registro.accion}</td>
-                                <td>{registro.fecha}</td> 
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan="7" className="text-center">
-                                No se encontraron registros.
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+                ))
+            ) : (
+                <tr>
+                    <td colSpan="7" className="text-center">
+                        No se encontraron registros.
+                    </td>
+                </tr>
+            )}
+        </tbody>
+    </table>
+</div>
+
+
         </div>
     );
+    
 };
-
 export default Historial;

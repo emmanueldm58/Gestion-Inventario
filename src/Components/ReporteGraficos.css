@@ -1,52 +1,22 @@
-/* Estilos generales para el contenedor del reporte */
 .reporte-graficos-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-top: 40px;
-    padding: 20px;
-  }
-  
-  .titulo-grafico {
-    font-size: 2rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  /* Estilo para el contenedor del gráfico */
-  .grafico-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    max-width: 90%;
-    margin-top: 20px;
-    margin-bottom: 40px;
-  }
-  
-  /* Estilos del gráfico */
-  .recharts-surface {
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .recharts-legend-wrapper {
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-  }
-  
-  .recharts-tooltip-item {
-    font-weight: 500;
-  }
-  
-  /* Añadir estilos a las celdas (colores) */
-  .recharts-pie-cell {
-    transition: transform 0.3s ease;
-  }
-  
-  .recharts-pie-cell:hover {
-    transform: scale(1.1);
-  }
-  
+  padding: 20px;
+  max-width: 100%;
+  margin: auto;
+}
+
+.titulo-grafico {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.grafico-container {
+  margin-bottom: 30px;
+}
+
+.grafico-responsivo {
+  width: 100%;
+  max-width: 800px; /* Opcional: Limita el tamaño máximo del gráfico */
+  margin: auto;     /* Centra el gráfico horizontalmente */
+}
+

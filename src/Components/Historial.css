@@ -1,0 +1,30 @@
+.tabla-ajustada td {
+    white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+    overflow: hidden;    /* Oculta cualquier texto que se desborde */
+    text-overflow: ellipsis; /* Muestra puntos suspensivos si el texto es muy largo */
+    max-width: 150px;    /* Define un ancho máximo para las celdas */
+}
+
+.tabla-ajustada th {
+    white-space: nowrap;
+}
+
+.tabla-ajustada th, 
+.tabla-ajustada td {
+    word-wrap: break-word;       /* Permite que las palabras largas se rompan */
+    white-space: normal;         /* Permite varias líneas de texto */
+    text-align: center;          /* Centra el contenido horizontalmente */
+    vertical-align: middle;      /* Centra el contenido verticalmente */
+    padding: 8px;                /* Espaciado interno */
+}
+
+.tabla-ajustada th {
+    background-color: #f8f9fa;   /* Color de fondo del encabezado */
+    font-weight: bold;           /* Texto en negrita para el encabezado */
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-responsive {
+    overflow-x: auto;            /* Desplazamiento horizontal en pantallas pequeñas */
+    margin-bottom: 1rem;         /* Espaciado debajo de la tabla */
+}

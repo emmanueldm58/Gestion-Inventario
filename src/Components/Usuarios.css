@@ -1,17 +1,34 @@
 .button-group {
-    display: flex;
-    justify-content: flex-end;  /* Alinea los botones a la derecha */
-    gap: 10px;  /* Espacio entre los botones */
-    margin-bottom: 20px; /* Espaciado inferior del grupo */
+  display: flex;
+  justify-content: flex-end;
+  /* Alinea los botones a la derecha */
+  gap: 10px;
+  /* Espacio entre los botones */
+  margin-bottom: 20px;
+  /* Espaciado inferior del grupo */
 }
+
 /* Contenedor responsivo para la tabla */
 .table-responsive {
-    overflow-x: auto; /* Permite que la tabla se desplace horizontalmente */
-    -webkit-overflow-scrolling: touch; /* Mejora la experiencia en dispositivos móviles */
-  }
-  
-  .table {
-    width: 100%;
-    max-width: 100%; /* Asegura que la tabla no se salga de su contenedor */
-    table-layout: fixed; /* Hace que la tabla tenga un diseño más consistente */
-  }
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: auto;
+  /* Permite que la tabla se desplace horizontalmente */
+  -webkit-overflow-scrolling: touch;
+  /* Mejora la experiencia en dispositivos móviles */
+}
+
+.table {
+  width: 100%;
+  max-width: 100%;
+  /* Asegura que la tabla no se salga de su contenedor */
+  table-layout: fixed;
+  /* Hace que la tabla tenga un diseño más consistente */
+}
+
+.tabla-ajustada {
+  word-wrap: break-word;
+  font-size: 14px;
+  /* Ajusta el tamaño del texto */
+}
+

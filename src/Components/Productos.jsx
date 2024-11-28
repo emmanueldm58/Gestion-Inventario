@@ -207,8 +207,8 @@ const Productos = ({ role, permisos }) => {
                 user: userA.email,
                 accion: 'Producto Nuevo',
                 producto: nuevoProducto.nombre,
-                cantidad: nuevoProducto.cantidad,
-                precio: nuevoProducto.precio,
+                cantidad: parseFloat(nuevoProducto.cantidad),
+                precio: parseFloat(nuevoProducto.precio),
                 fecha: new Date().toISOString().replace('T', ' ').slice(0, 19),
             });
             setNuevoProducto({ nombre: '', cantidad: 0, precio: 0 });
