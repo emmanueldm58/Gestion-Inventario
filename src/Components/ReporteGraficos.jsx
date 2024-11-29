@@ -9,7 +9,6 @@ const ReporteGraficos = ({ historial }) => {
 
   useEffect(() => {
     if (historial && historial.length > 0) {
-      console.log('Historial:', historial); // Verificar los datos de productos
       generarDatosGrafico(historial);
     }
   }, [historial]);

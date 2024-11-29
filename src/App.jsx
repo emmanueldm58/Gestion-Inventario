@@ -9,7 +9,6 @@ import Footer from './Components/Footer.jsx';
 import Usuarios from './Components/Usuarios.jsx';
 import Productos from './Components/Productos.jsx';
 import Historial from './Components/Historial.jsx';
-import Administrador from './Components/Administrador.jsx';
 import Login from './Components/Login.jsx';
 import Notification from './Components/Notification';
 import ReporteGraficos from './Components/ReporteGraficos'; // Importa el componente de gráficos
@@ -130,7 +129,6 @@ const App = () => {
             <Route path="/" element={isAuthenticated ? <Productos role={role} productos={productos} permisos={permisos} /> : <Navigate to="/login" />} />
             <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
             <Route path="/usuarios" element={role === 'admin' ? <Usuarios role={role} /> : <Navigate to="/" />} />
-            <Route path="/administrador" element={role === 'admin' ? <Administrador /> : <Navigate to="/" />} />
             <Route path="/historial" element={role === 'admin' ? <Historial /> : <Navigate to="/" />} />
             <Route path="/graficos" element={isAuthenticated ? <ReporteGraficos historial={dataHistorial} /> : <Navigate to="/login" />} />
             <Route path="*" element={<Navigate to="/login" />} />

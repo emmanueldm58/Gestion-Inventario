@@ -250,7 +250,7 @@ const Productos = ({ role, permisos }) => {
         // Confirmación antes de proceder con el movimiento
         const confirmAction = window.confirm(`¿Estás seguro de que deseas ${movimiento.accion === 'entrada' ? 'agregar' : 'sacar'} ${cantidadMovida} unidades?`);
         if (!confirmAction) return;  // Si el usuario cancela, no se realiza el movimiento.
-         try {
+        try {
 
             // Registrar movimiento en la colección Historial
             const nuevoMovimiento = {
@@ -335,7 +335,10 @@ const Productos = ({ role, permisos }) => {
                     <tbody>
                         {productosFiltrados.length > 0 ? (
                             productosFiltrados.map((producto) => (
-                                <tr key={producto.id}>
+                                <tr
+                                    key={producto.id}
+                                    className={producto.cantidad < 10 ? 'table-danger' : ''} // Aplica la clase 'table-danger' para resaltar filas en rojo
+                                >
                                     <td>{producto.nombre}</td>
                                     <td>{producto.precio}</td>
                                     <td>{producto.cantidad}</td>
@@ -352,48 +355,42 @@ const Productos = ({ role, permisos }) => {
                                             </button>
                                             <ul className="dropdown-menu" aria-labelledby={`dropdownMenu-${producto.id}`}>
                                                 {permisos.registrarMovimiento && (
-                                                    <>
-                                                        <li>
-                                                            <button
-                                                                className="dropdown-item"
-                                                                onClick={() => {
-                                                                    setProductoSeleccionado(producto);
-                                                                    setShowMovimientoModal(true);
-                                                                }}
-                                                            >
-                                                                Movimiento
-                                                            </button>
-                                                        </li>
-                                                    </>
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item"
+                                                            onClick={() => {
+                                                                setProductoSeleccionado(producto);
+                                                                setShowMovimientoModal(true);
+                                                            }}
+                                                        >
+                                                            Movimiento
+                                                        </button>
+                                                    </li>
                                                 )}
 
                                                 {permisos.editar && (
-                                                    <>
-                                                        <li>
-                                                            <button
-                                                                className="dropdown-item"
-                                                                onClick={() => {
-                                                                    setProductoSeleccionado(producto);
-                                                                    setProductoEditar(producto);
-                                                                    setShowEditarModal(true);
-                                                                }}
-                                                            >
-                                                                Editar
-                                                            </button>
-                                                        </li>
-                                                    </>
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item"
+                                                            onClick={() => {
+                                                                setProductoSeleccionado(producto);
+                                                                setProductoEditar(producto);
+                                                                setShowEditarModal(true);
+                                                            }}
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                    </li>
                                                 )}
                                                 {permisos.eliminar && (
-                                                    <>
-                                                        <li>
-                                                            <button
-                                                                className="dropdown-item text-danger"
-                                                                onClick={() => handleEliminarProducto(producto)}
-                                                            >
-                                                                Eliminar
-                                                            </button>
-                                                        </li>
-                                                    </>
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item text-danger"
+                                                            onClick={() => handleEliminarProducto(producto)}
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </li>
                                                 )}
                                             </ul>
                                         </div>
@@ -408,6 +405,7 @@ const Productos = ({ role, permisos }) => {
                             </tr>
                         )}
                     </tbody>
+
                 </table>
             ) : (
                 <div style={{ color: "red", textAlign: "center", marginTop: "20px" }}>
@@ -569,7 +567,7 @@ const Productos = ({ role, permisos }) => {
                                 }}
                             >
                                 <p>Producto: {productoSeleccionado?.nombre}</p>
-                                
+
                                 <div className="mb-3">
                                     <label htmlFor="tipo" className="form-label">
                                         Tipo de Movimiento
@@ -587,7 +585,7 @@ const Productos = ({ role, permisos }) => {
                                         <option value="salida">Salida</option>
                                     </select>
                                 </div>
-                                
+
                                 <div className="mb-3">
                                     <label htmlFor="cantidad" className="form-label">
                                         Cantidad
@@ -601,12 +599,12 @@ const Productos = ({ role, permisos }) => {
                                         onChange={(e) => {
                                             // Obtener el valor ingresado
                                             movimiento.cantidad = parseInt(e.target.value, 10);
-                    
+
                                             // Validar que la cantidad no sea mayor al stock disponible
                                             if (movimiento.accion === "salida" && movimiento.cantidad > productoSeleccionado.cantidad) {
                                                 movimiento.cantidad = productoSeleccionado.cantidad; // Limitar la cantidad a la disponible
                                             }
-                    
+
                                             // Actualizar el estado con la cantidad validada
                                             handleMovimientoChange({
                                                 target: {

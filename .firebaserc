@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "tiendaonline-79bfc",
+    "default": "inventario-87d56",
     "inventario": "inventario-87d56"
   },
   "targets": {},
