@@ -288,8 +288,9 @@ const Productos = ({ role, permisos }) => {
     if (error) return <div className="text-center text-danger">{error}</div>;
 
     return (
-        <div className="container" style={{ marginTop: '20px' }}>
-            <h1 className="text my-4">Productos</h1>
+        
+        <div className="container" style={{ marginTop: '120px' }}>
+            <h1 className="text-center my-4">Productos</h1>
 
             {/* Campo de búsqueda */}
             <div className="row justify-content-center mb-4">

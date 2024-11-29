@@ -104,7 +104,7 @@ const Historial = () => {
                     Generar Reporte Excel
                 </button>
             </div>
-            <div className="table-responsive">
+            <div>
     <table className="table table-bordered tabla-ajustada">
         <thead>
             <tr>

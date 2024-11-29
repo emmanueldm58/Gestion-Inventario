@@ -9,6 +9,7 @@
     white-space: nowrap;
 }
 
+
 .tabla-ajustada th, 
 .tabla-ajustada td {
     word-wrap: break-word;       /* Permite que las palabras largas se rompan */
